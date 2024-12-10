@@ -72,29 +72,26 @@ function Chat() {
 
 	const renderMessages = (messages) => {
 		return messages.map((msg) => (
-			<div key={msg._id} className="mb-2">
+			<div key={msg._id} className="mb-4">
 				<div className="flex flex-col items-start">
-					<span className="text-sm text-gray-500">{msg.sender}</span>
-					{msg.replyTo && msg.replyTo.message && (
-						<div className="bg-gray-200 p-2 rounded-md text-xs mb-1">
-							Replying to: {msg.replyTo.message}
-						</div>
-					)}
-					<div className="bg-blue-500 text-white p-2 rounded-md">
+					<span className="text-sm text-gray-700 font-semibold">
+						{msg.sender}
+					</span>
+
+					<div className="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md">
 						{msg.message}
 					</div>
-					<span className="text-gray-500 text-xs">
+					<span className="text-gray-500 text-xs italic mt-1">
 						{new Date(msg.timestamp).toLocaleTimeString()}
 					</span>
 					<button
-						className="text-blue-500 text-xs mt-1"
+						className="text-blue-600 text-xs mt-1 hover:underline"
 						onClick={() => handleReply(msg)}
 					>
 						Reply
 					</button>
-					{/* Recursive Rendering for Replies */}
 					{msg.replies && msg.replies.length > 0 && (
-						<div className="ml-4 border-l-2 border-gray-300 pl-2">
+						<div className="ml-6 border-l-2 border-gray-300 pl-4 mt-2">
 							{renderMessages(msg.replies)}
 						</div>
 					)}
@@ -104,28 +101,30 @@ function Chat() {
 	};
 
 	return (
-		<div className="flex justify-center items-center w-full h-screen bg-gradient-to-b from-blue-300 to-blue-200">
-			<div className="bg-white rounded-lg w-96 h-[32rem] p-4 shadow-md">
+		<div className="flex justify-center items-center w-full h-screen">
+			<div className=" w-full h-full p-6 shadow-xl">
 				<div className="flex flex-col h-full">
-					<div className="flex-1 p-2 overflow-y-auto bg-gray-100 rounded-md">
+					<div className="flex-1 p-2 overflow-y-auto bg-gray-50 rounded-md border border-gray-300">
 						{renderMessages(messages)}
 					</div>
-					<div className="p-2 border-t border-gray-300">
+					<div className="p-2 mt-4">
 						{replyingTo && (
-							<div className="mb-2 p-2 bg-gray-200 rounded-md text-sm">
-								Replying to: {replyingTo.message}
+							<div className="mb-3 p-2 bg-gray-100 rounded-md text-sm flex justify-between items-center">
+								<span className="text-gray-700">
+									Replying to: {replyingTo.message}
+								</span>
 								<button
-									className="text-red-500 ml-2"
+									className="text-red-500 text-sm font-bold hover:text-red-700"
 									onClick={() => setReplyingTo(null)}
 								>
 									Cancel
 								</button>
 							</div>
 						)}
-						<div className="mb-2">
+						<div className="mb-4">
 							<input
 								type="text"
-								className="w-full px-2 py-1 border rounded-md outline-none"
+								className="w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-indigo-500"
 								placeholder="Enter your username..."
 								value={username}
 								onChange={(e) => setUsername(e.target.value)}
@@ -134,13 +133,13 @@ function Chat() {
 						<div className="flex">
 							<input
 								type="text"
-								className="w-full px-2 py-1 border rounded-l-md outline-none"
+								className="w-full px-3 py-2 border-t border-b border-l rounded-l-md outline-none focus:ring-2 focus:ring-indigo-500"
 								placeholder="Type your message..."
 								value={messageInput}
 								onChange={(e) => setMessageInput(e.target.value)}
 							/>
 							<button
-								className="px-4 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600"
+								className="px-5 py-2 bg-indigo-500 text-white rounded-r-md hover:bg-indigo-600"
 								onClick={sendMessage}
 							>
 								Send
