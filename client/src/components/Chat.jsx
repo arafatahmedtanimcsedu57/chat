@@ -1,3 +1,4 @@
+// Frontend Code
 import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 
@@ -25,13 +26,30 @@ function Chat() {
 
 		// Listen for incoming messages
 		socket.on('message', (message) => {
-			setMessages((prevMessages) => [...prevMessages, message]);
+			setMessages((prevMessages) => updateMessages(message, prevMessages));
 		});
 
 		return () => {
 			socket.off('message');
 		};
 	}, []);
+
+	const updateMessages = (newMessage, messages) => {
+		if (!newMessage.replyTo) return [...messages, newMessage]; // Top-level message
+
+		return messages.map((msg) => {
+			if (msg._id === newMessage.replyTo._id) {
+				return {
+					...msg,
+					replies: [...msg.replies, newMessage],
+				};
+			}
+			return {
+				...msg,
+				replies: updateMessages(newMessage, msg.replies),
+			};
+		});
+	};
 
 	const sendMessage = () => {
 		if (messageInput.trim() !== '') {
@@ -52,13 +70,12 @@ function Chat() {
 		setReplyingTo(message);
 	};
 
-	// Recursive function to render messages and their replies
-	const renderMessages = (messagesList) => {
-		return messagesList.map((msg) => (
+	const renderMessages = (messages) => {
+		return messages.map((msg) => (
 			<div key={msg._id} className="mb-2">
 				<div className="flex flex-col items-start">
 					<span className="text-sm text-gray-500">{msg.sender}</span>
-					{msg.replyTo && (
+					{msg.replyTo && msg.replyTo.message && (
 						<div className="bg-gray-200 p-2 rounded-md text-xs mb-1">
 							Replying to: {msg.replyTo.message}
 						</div>
@@ -75,11 +92,13 @@ function Chat() {
 					>
 						Reply
 					</button>
+					{/* Recursive Rendering for Replies */}
+					{msg.replies && msg.replies.length > 0 && (
+						<div className="ml-4 border-l-2 border-gray-300 pl-2">
+							{renderMessages(msg.replies)}
+						</div>
+					)}
 				</div>
-				{/* Render replies recursively */}
-				{msg.replies && msg.replies.length > 0 && (
-					<div className="ml-4">{renderMessages(msg.replies)}</div>
-				)}
 			</div>
 		));
 	};

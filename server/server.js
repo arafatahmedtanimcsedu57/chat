@@ -1,3 +1,4 @@
+// Server-side Code
 const express = require('express');
 const http = require('http');
 const cors = require('cors');
@@ -41,8 +42,24 @@ const chatSchema = new mongoose.Schema({
 	sender: String,
 	timestamp: { type: Date, default: Date.now },
 	replyTo: { type: mongoose.Schema.Types.ObjectId, ref: 'Chat', default: null },
+	replies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Chat' }],
 });
 const Chat = mongoose.model('Chat', chatSchema);
+
+// Recursive Population Function
+async function populateReplies(chat, depth = 3) {
+	if (depth === 0) return chat;
+	const populated = await Chat.findById(chat._id)
+		.populate('replyTo')
+		.populate('replies');
+
+	if (!populated) return chat;
+
+	populated.replies = await Promise.all(
+		populated.replies.map((reply) => populateReplies(reply, depth - 1)),
+	);
+	return populated;
+}
 
 // WebSocket connection handling
 io.on('connection', (socket) => {
@@ -56,10 +73,15 @@ io.on('connection', (socket) => {
 		const chat = new Chat({ message, sender, replyTo });
 		const savedChat = await chat.save();
 
-		// Broadcast the message to all connected clients
-		const populatedChat = await Chat.findById(savedChat._id).populate(
-			'replyTo',
-		);
+		// If there's a reply, update the parent message to include the new reply
+		if (replyTo) {
+			await Chat.findByIdAndUpdate(replyTo, {
+				$push: { replies: savedChat },
+			});
+		}
+
+		// Populate the replies and replyTo fields to send the complete message object
+		const populatedChat = await populateReplies(savedChat);
 
 		io.emit('message', populatedChat);
 	});
@@ -70,12 +92,18 @@ io.on('connection', (socket) => {
 	});
 });
 
-// API to get all chat messages
 app.get('/api/messages', async (req, res) => {
 	try {
-		const messages = await Chat.find().sort({ timestamp: 1 });
-		res.status(200).json(messages);
+		// Fetch and recursively populate the chats
+		let messages = await Chat.find({ replyTo: null }) // Fetch top-level messages
+			.sort({ timestamp: 1 });
+		const populatedMessages = await Promise.all(
+			messages.map((message) => populateReplies(message)),
+		);
+
+		res.status(200).json(populatedMessages);
 	} catch (err) {
+		console.error('Error fetching messages:', err);
 		res.status(500).json({ error: 'Failed to fetch messages' });
 	}
 });
